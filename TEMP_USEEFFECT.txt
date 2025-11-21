@@ -1,0 +1,34 @@
+// Agregar después de la línea donde defines showCashRegisterModal
+  const [showCashRegisterModal, setShowCashRegisterModal] = useState(false);
+  const [hasCashRegister, setHasCashRegister] = useState<boolean | null>(null); // null = aún no verificado
+  const [checkingCashRegister, setCheckingCashRegister] = useState(true);
+
+  // ✨ NUEVO: Verificar si hay caja abierta al cargar el POS
+  useEffect(() => {
+    const checkCashRegister = async () => {
+      if (!session) return;
+      
+      try {
+        setCheckingCashRegister(true);
+        const response = await fetch('/api/cash-register?action=current');
+        const data = await response.json();
+        
+        setHasCashRegister(data.hasOpenClosure);
+        
+        // Si NO hay caja abierta, abrir modal automáticamente
+        if (!data.hasOpenClosure) {
+          console.log('⚠️ No hay caja abierta, mostrando modal de apertura');
+          setTimeout(() => setShowCashRegisterModal(true), 500); // Pequeño delay para mejor UX
+        }
+      } catch (error) {
+        console.error('Error verificando caja:', error);
+      } finally {
+        setCheckingCashRegister(false);
+      }
+    };
+
+    // Solo verificar una vez al cargar
+    if (session && checkingCashRegister) {
+      checkCashRegister();
+    }
+  }, [session]);

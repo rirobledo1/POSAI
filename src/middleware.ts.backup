@@ -1,0 +1,3 @@
+# Archivo eliminado - funcionalidad consolidada en /middleware.ts
+# Este archivo causaba conflictos con el middleware principal
+# Todas las funciones de autenticación están ahora en el middleware unificado

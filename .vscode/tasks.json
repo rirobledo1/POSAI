@@ -1,0 +1,96 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Generate Prisma Client",
+			"type": "shell",
+			"command": "npx prisma generate",
+			"group": "build"
+		},
+		{
+			"label": "Add Tax Fields Migration",
+			"type": "shell",
+			"command": "node add-tax-fields.js",
+			"group": "build"
+		},
+		{
+			"label": "Update Company Settings",
+			"type": "shell",
+			"command": "node update-settings.js",
+			"group": "build"
+		},
+		{
+			"label": "Test Dynamic IVA",
+			"type": "shell",
+			"command": "node test-dynamic-iva.js",
+			"group": "test"
+		},
+		{
+			"label": "Final System Test",
+			"type": "shell",
+			"command": "node final-test.js",
+			"group": "test"
+		},
+		{
+			"label": "Test Website Optional",
+			"type": "shell",
+			"command": "node test-website-optional.js",
+			"group": "test"
+		},
+		{
+			"label": "Diagnóstico Configuración",
+			"type": "shell",
+			"command": "node diagnostico-config.js",
+			"group": "test"
+		},
+		{
+			"label": "Prueba Rápida IVA",
+			"type": "shell",
+			"command": "node prueba-rapida.js",
+			"group": "test"
+		},
+		{
+			"label": "Debug Venta",
+			"type": "shell",
+			"command": "node debug-venta.js",
+			"group": "test"
+		},
+		{
+			"label": "Test Venta Real",
+			"type": "shell",
+			"command": "node test-venta-real.js",
+			"group": "test"
+		},
+		{
+			"label": "Start Dev Server",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"group": "serve"
+		},
+		{
+			"label": "Regenerate Prisma Client",
+			"type": "shell",
+			"command": "npx prisma generate",
+			"group": "build"
+		},
+		{
+			"label": "Verificar Esquema BD",
+			"type": "shell",
+			"command": "node verificar-esquema.js",
+			"group": "test"
+		},
+		{
+			"label": "Verificar Usuarios DB",
+			"type": "shell",
+			"command": "node verificar-usuarios.js",
+			"group": "debug"
+		},
+		{
+			"label": "Test Dashboard Stats",
+			"type": "shell",
+			"command": "node test-dashboard-stats.js",
+			"group": "test"
+		}
+	]
+}

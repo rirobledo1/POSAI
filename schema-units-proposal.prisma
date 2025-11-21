@@ -1,0 +1,65 @@
+// Esquema propuesto para unidades de medida
+
+model Product {
+  id                 String              @id @default(cuid())
+  name               String
+  description        String?
+  barcode            String              @unique
+  price              Decimal             @db.Decimal(10, 2)
+  cost               Decimal             @db.Decimal(10, 2)
+  stock              Int                 @default(0)
+  minStock           Int                 @default(5) @map("min_stock")
+  categoryId         String              @map("category_id")
+  
+  // NUEVOS CAMPOS PARA UNIDADES DE MEDIDA
+  unitOfMeasure      String              @default("pz") @map("unit_of_measure") // pz, kg, m, L, etc.
+  unitQuantity       Decimal?            @db.Decimal(10, 3) @map("unit_quantity") // Cantidad por unidad (ej: 1.5kg)
+  isBulkSale         Boolean             @default(false) @map("is_bulk_sale") // Si se vende por cantidad variable
+  
+  featured           Boolean             @default(false)
+  active             Boolean             @default(true)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  inventoryMovements InventoryMovement[]
+  category           categories          @relation(fields: [categoryId], references: [id])
+  saleItems          SaleItem[]
+
+  @@map("products")
+}
+
+// Enum para unidades de medida estandarizadas
+enum UnitOfMeasure {
+  // Cantidad
+  PZ    // pieza
+  SET   // conjunto/set
+  PAR   // par
+  
+  // Longitud
+  MM    // milímetro
+  CM    // centímetro
+  M     // metro
+  INCH  // pulgada
+  FT    // pie
+  
+  // Peso
+  G     // gramo
+  KG    // kilogramo
+  LB    // libra
+  OZ    // onza
+  
+  // Volumen
+  ML    // mililitro
+  L     // litro
+  GAL   // galón
+  
+  // Área
+  M2    // metro cuadrado
+  FT2   // pie cuadrado
+  
+  // Especiales para ferretería
+  AWG   // American Wire Gauge (cables)
+  HP    // caballos de fuerza
+  W     // watts
+  V     // voltios
+  A     // amperios
+}

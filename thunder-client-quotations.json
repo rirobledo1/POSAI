@@ -1,0 +1,57 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "FerreAI - Cotizaciones",
+  "collectionId": "quotations-api",
+  "dateExported": "2025-10-23",
+  "version": "1.1",
+  "folders": [],
+  "requests": [
+    {
+      "name": "1. Crear Cotización",
+      "method": "POST",
+      "url": "http://localhost:3000/api/quotations",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"customerId\": \"REEMPLAZAR_CON_CUSTOMER_ID\",\n  \"companyId\": \"REEMPLAZAR_CON_COMPANY_ID\",\n  \"branchId\": \"REEMPLAZAR_CON_BRANCH_ID\",\n  \"validDays\": 15,\n  \"items\": [\n    {\n      \"productId\": \"REEMPLAZAR_CON_PRODUCT_ID_1\",\n      \"quantity\": 5,\n      \"price\": 250.00,\n      \"discount\": 0,\n      \"description\": \"Producto 1\"\n    },\n    {\n      \"productId\": \"REEMPLAZAR_CON_PRODUCT_ID_2\",\n      \"quantity\": 10,\n      \"price\": 150.00,\n      \"discount\": 10,\n      \"description\": \"Producto 2\"\n    }\n  ],\n  \"discountPercent\": 5,\n  \"notes\": \"Cliente preferencial - Entrega en 3 días\",\n  \"termsConditions\": \"Válido por 15 días. Precios sujetos a cambios.\"\n}",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "2. Listar Cotizaciones",
+      "method": "GET",
+      "url": "http://localhost:3000/api/quotations?companyId=REEMPLAZAR_CON_COMPANY_ID&page=1&limit=10",
+      "headers": [],
+      "body": {
+        "type": "none"
+      },
+      "tests": []
+    },
+    {
+      "name": "3. Listar por Estado (DRAFT)",
+      "method": "GET",
+      "url": "http://localhost:3000/api/quotations?companyId=REEMPLAZAR_CON_COMPANY_ID&status=DRAFT",
+      "headers": [],
+      "body": {
+        "type": "none"
+      },
+      "tests": []
+    },
+    {
+      "name": "4. Listar por Cliente",
+      "method": "GET",
+      "url": "http://localhost:3000/api/quotations?companyId=REEMPLAZAR_CON_COMPANY_ID&customerId=REEMPLAZAR_CON_CUSTOMER_ID",
+      "headers": [],
+      "body": {
+        "type": "none"
+      },
+      "tests": []
+    }
+  ]
+}

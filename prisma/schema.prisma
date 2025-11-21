@@ -1,0 +1,982 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String      @id @default(cuid())
+  name                String
+  email               String      @unique
+  phone               String?     @unique
+  password            String?     @map("password_hash")
+  isActive            Boolean     @default(true) @map("active")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+  role                Role        @default(VENDEDOR)
+  companyId           String      @map("company_id")
+  branchId            String?     @map("branch_id")
+  accounts            Account[]
+  sales               Sale[]
+  sessions            Session[]
+  superAdmin          SuperAdmin?
+  branch              Branch?     @relation(fields: [branchId], references: [id])
+  company             Company     @relation(fields: [companyId], references: [id])
+  quotationsCreated   Quotation[] @relation("QuotationCreatedBy")
+
+  @@index([companyId])
+  @@index([branchId])
+  @@map("users")
+}
+
+model Product {
+  id                 String              @id @default(cuid())
+  name               String
+  description        String?
+  barcode            String              @unique
+  price              Decimal             @db.Decimal(10, 2)
+  cost               Decimal             @db.Decimal(10, 2)
+  stock              Int                 @default(0)
+  minStock           Int                 @default(5) @map("min_stock")
+  categoryId         String              @map("category_id")
+  featured           Boolean             @default(false)
+  active             Boolean             @default(true)
+  companyId          String              @map("company_id")
+  imageUrl           String?             @map("image_url")
+  thumbnailUrl       String?             @map("thumbnail_url")
+  hasImage           Boolean             @default(false) @map("has_image")
+  imageFileName      String?             @map("image_file_name")
+  imageSize          Int?                @map("image_size")
+  imageMimeType      String?             @map("image_mime_type")
+  imageUploadedAt    DateTime?           @map("image_uploaded_at")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  branchProducts     BranchProduct[]
+  inventoryMovements InventoryMovement[]
+  images             ProductImage[]
+  category           categories          @relation(fields: [categoryId], references: [id])
+  company            Company             @relation(fields: [companyId], references: [id])
+  saleItems          SaleItem[]
+  transferItems      StockTransferItem[]
+  quotationItems     QuotationItem[]
+
+  @@index([companyId])
+  @@map("products")
+}
+
+model Branch {
+  id                 String              @id @default(cuid())
+  name               String
+  code               String
+  phone              String?
+  email              String?
+  address            String
+  city               String
+  state              String
+  country            String              @default("México")
+  postalCode         String?             @map("postal_code")
+  latitude           Float?
+  longitude          Float?
+  isActive           Boolean             @default(true) @map("is_active")
+  isMain             Boolean             @default(false) @map("is_main")
+  timezone           String              @default("America/Mexico_City")
+  settings           Json?
+  companyId          String              @map("company_id")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  branchProducts     BranchProduct[]
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  inventoryMovements InventoryMovement[]
+  sales              Sale[]
+  transfersTo        StockTransfer[]     @relation("DestinationBranch")
+  transfersFrom      StockTransfer[]     @relation("OriginBranch")
+  users              User[]
+  quotations         Quotation[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("branches")
+}
+
+model BranchProduct {
+  id          String   @id @default(cuid())
+  branchId    String   @map("branch_id")
+  productId   String   @map("product_id")
+  stock       Int      @default(0)
+  minStock    Int      @default(5) @map("min_stock")
+  maxStock    Int      @default(100) @map("max_stock")
+  location    String?
+  customPrice Decimal? @map("custom_price") @db.Decimal(10, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, productId])
+  @@index([branchId])
+  @@index([productId])
+  @@map("branch_products")
+}
+
+model StockTransfer {
+  id                  String              @id @default(cuid())
+  transferNumber      String              @unique @map("transfer_number")
+  originBranchId      String              @map("origin_branch_id")
+  destinationBranchId String              @map("destination_branch_id")
+  status              TransferStatus      @default(PENDING)
+  requestedBy         String              @map("requested_by")
+  approvedBy          String?             @map("approved_by")
+  receivedBy          String?             @map("received_by")
+  requestedAt         DateTime            @default(now()) @map("requested_at")
+  approvedAt          DateTime?           @map("approved_at")
+  shippedAt           DateTime?           @map("shipped_at")
+  receivedAt          DateTime?           @map("received_at")
+  notes               String?
+  companyId           String              @map("company_id")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+  items               StockTransferItem[]
+  company             Company             @relation(fields: [companyId], references: [id])
+  destinationBranch   Branch              @relation("DestinationBranch", fields: [destinationBranchId], references: [id])
+  originBranch        Branch              @relation("OriginBranch", fields: [originBranchId], references: [id])
+
+  @@index([companyId])
+  @@index([status])
+  @@index([originBranchId])
+  @@index([destinationBranchId])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id                String        @id @default(cuid())
+  transferId        String        @map("transfer_id")
+  productId         String        @map("product_id")
+  quantityRequested Int           @map("quantity_requested")
+  quantityApproved  Int?          @map("quantity_approved")
+  quantityReceived  Int?          @map("quantity_received")
+  notes             String?
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  product           Product       @relation(fields: [productId], references: [id])
+  transfer          StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  @@index([transferId])
+  @@index([productId])
+  @@map("stock_transfer_items")
+}
+
+model Customer {
+  id                String            @id @default(cuid())
+  name              String
+  email             String?           @unique
+  phone             String?
+  rfc               String?           @unique
+  address           String?
+  creditLimit       Decimal           @default(0) @map("credit_limit") @db.Decimal(10, 2)
+  currentDebt       Decimal           @default(0) @map("current_debt") @db.Decimal(10, 2)
+  active            Boolean           @default(true)
+  companyId         String            @map("company_id")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  payments          CustomerPayment[]
+  company           Company           @relation(fields: [companyId], references: [id])
+  deliveryAddresses DeliveryAddress[]
+  sales             Sale[]
+  quotations        Quotation[]
+
+  @@index([companyId])
+  @@map("customers")
+}
+
+model Sale {
+  id                 String              @id @default(cuid())
+  folio              String              @unique
+  customerId         String?             @map("customer_id")
+  userId             String              @map("user_id")
+  paymentMethod      String              @map("payment_method")
+  subtotal           Decimal             @db.Decimal(10, 2)
+  tax                Decimal             @db.Decimal(10, 2)
+  total              Decimal             @db.Decimal(10, 2)
+  paidAmount         Decimal?            @map("paid_amount") @db.Decimal(10, 2)
+  changeAmount       Decimal?            @map("change_amount") @db.Decimal(10, 2)
+  deliveryType       DeliveryType        @default(PICKUP) @map("delivery_type")
+  status             String              @default("COMPLETED")
+  notes              String?
+  deliveryFee        Decimal?            @map("delivery_fee") @db.Decimal(10, 2)
+  amountPaid         Decimal             @default(0) @map("amount_paid") @db.Decimal(10, 2)
+  remainingBalance   Decimal             @default(0) @map("remaining_balance") @db.Decimal(10, 2)
+  paymentStatus      PaymentStatus       @default(PENDING) @map("payment_status")
+  dueDate            DateTime?           @map("due_date")
+  companyId          String              @map("company_id")
+  branchId           String?             @map("branch_id")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  payments           CustomerPayment[]
+  inventoryMovements InventoryMovement[]
+  saleItems          SaleItem[]
+  branch             Branch?             @relation(fields: [branchId], references: [id])
+  company            Company             @relation(fields: [companyId], references: [id])
+  customer           Customer?           @relation(fields: [customerId], references: [id])
+  user               User                @relation(fields: [userId], references: [id])
+
+  @@index([companyId])
+  @@index([branchId])
+  @@index([paymentStatus])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String   @id @default(cuid())
+  saleId    String   @map("sale_id")
+  productId String   @map("product_id")
+  quantity  Int
+  unitPrice Decimal  @map("unit_price") @db.Decimal(10, 2)
+  total     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  product   Product  @relation(fields: [productId], references: [id])
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@map("sale_items")
+}
+
+model InventoryMovement {
+  id             String   @id @default(cuid())
+  product_id     String
+  sale_id        String?
+  type           String
+  quantity       Int
+  previous_stock Int
+  new_stock      Int
+  reason         String?
+  companyId      String   @map("company_id")
+  branchId       String?  @map("branch_id")
+  created_at     DateTime @default(now())
+  branch         Branch?  @relation(fields: [branchId], references: [id])
+  company        Company  @relation(fields: [companyId], references: [id])
+  product        Product  @relation(fields: [product_id], references: [id])
+  sale           Sale?    @relation(fields: [sale_id], references: [id])
+
+  @@index([companyId])
+  @@index([branchId])
+  @@map("inventory_movements")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+model categories {
+  id          String    @id
+  name        String
+  description String?
+  active      Boolean   @default(true)
+  companyId   String    @map("company_id")
+  created_at  DateTime  @default(now())
+  updated_at  DateTime
+  company     Company   @relation(fields: [companyId], references: [id])
+  products    Product[]
+
+  @@index([companyId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  details    Json?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
+
+model CompanySettings {
+  id                  String   @id @default(cuid())
+  companyName         String   @map("company_name")
+  rfc                 String
+  address             String?
+  phone               String?
+  email               String?
+  website             String?
+  logoUrl             String?  @map("logo_url")
+  taxRegime           String?  @map("tax_regime")
+  invoiceSeriesPrefix String?  @map("invoice_series_prefix")
+  invoiceNextNumber   Int      @default(1) @map("invoice_next_number")
+  posTitle            String?  @map("pos_title")
+  receiptFooter       String?  @map("receipt_footer")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  currency            String   @default("MXN")
+  taxPercentage       Decimal  @default(16) @map("tax_percentage") @db.Decimal(5, 2)
+
+  @@map("company_settings")
+}
+
+model ProductCategory {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean           @default(true) @map("active")
+  parentId    String?           @map("parent_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  parent      ProductCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    ProductCategory[] @relation("CategoryHierarchy")
+
+  @@map("product_categories")
+}
+
+model Company {
+  id                    String              @id @default(cuid())
+  name                  String
+  slug                  String              @unique
+  businessType          String              @default("GENERAL") @map("business_type")
+  phone                 String?
+  email                 String?
+  address               String?
+  taxId                 String?             @map("tax_id")
+  logo                  String?
+  taxRate               Decimal             @default(16.00) @map("tax_rate") @db.Decimal(5, 2)
+  currency              String              @default("MXN")
+  timezone              String              @default("America/Mexico_City")
+  plan                  Plan                @default(FREE)
+  status                CompanyStatus       @default(TRIAL)
+  subscriptionExpiresAt DateTime?           @map("subscription_expires_at")
+  settings              Json?
+  maxBranches           Int                 @default(1) @map("max_branches")
+  maxUsers              Int                 @default(3) @map("max_users")
+  maxProducts           Int                 @default(100) @map("max_products")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  emailConfigured       Boolean             @default(false) @map("email_configured")
+  emailFromName         String?             @map("email_from_name")
+  emailHost             String?             @map("email_host")
+  emailPassword         String?             @map("email_password")
+  emailPort             Int?                @default(587) @map("email_port")
+  emailProvider         String?             @default("NONE") @map("email_provider")
+  emailSecure           Boolean?            @default(false) @map("email_secure")
+  emailUser             String?             @map("email_user")
+  rfc                   String?
+  reminderDaysAfter     Int[]               @default([1, 3, 7]) @map("reminder_days_after")
+  reminderDaysBefore    Int                 @default(7) @map("reminder_days_before")
+  reminderTime          String              @default("09:00") @map("reminder_time")
+  remindersEnabled      Boolean             @default(false) @map("reminders_enabled")
+  
+  // Configuración de tienda en línea
+  onlineStoreEnabled    Boolean             @default(false) @map("online_store_enabled")
+  onlineStoreUrl        String?             @map("online_store_url")
+  allowOnlineQuotes     Boolean             @default(true) @map("allow_online_quotes")
+  allowOnlineSales      Boolean             @default(false) @map("allow_online_sales")
+  onlinePaymentEnabled  Boolean             @default(false) @map("online_payment_enabled")
+  
+  // Stripe/Payment config
+  stripePublishableKey  String?             @map("stripe_publishable_key")
+  stripeSecretKey       String?             @map("stripe_secret_key")
+  paymentMode           String              @default("mock") @map("payment_mode") // "mock" | "stripe_test" | "stripe_live"
+  
+  branches              Branch[]
+  categories            categories[]
+  customers             Customer[]
+  deliveryAddresses     DeliveryAddress[]
+  inventoryMovements    InventoryMovement[]
+  paymentHistory        PaymentHistory[]
+  products              Product[]
+  sales                 Sale[]
+  stockTransfers        StockTransfer[]
+  subscription          Subscription?
+  users                 User[]
+  quotations            Quotation[]
+  onlineOrders          OnlineOrder[]
+  storeCustomers        StoreCustomer[]
+
+  @@map("companies")
+}
+
+model DeliveryAddress {
+  id              String    @id @default(cuid())
+  customerId      String    @map("customer_id")
+  addressLine1    String    @map("address_line_1")
+  addressLine2    String?   @map("address_line_2")
+  city            String
+  state           String
+  postalCode      String?   @map("postal_code")
+  country         String    @default("México")
+  latitude        Float?
+  longitude       Float?
+  deliveryZone    String    @map("delivery_zone")
+  deliveryNotes   String?   @map("delivery_notes")
+  isVerified      Boolean   @default(false) @map("is_verified")
+  isDefault       Boolean   @default(false) @map("is_default")
+  geocodeProvider String?   @map("geocode_provider")
+  lastGeocoded    DateTime? @map("last_geocoded")
+  companyId       String    @map("company_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  company         Company   @relation(fields: [companyId], references: [id])
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("delivery_addresses")
+}
+
+model ProductImage {
+  id           String   @id @default(cuid())
+  productId    String   @map("product_id")
+  imageUrl     String   @map("image_url")
+  thumbnailUrl String?  @map("thumbnail_url")
+  fileName     String   @map("file_name")
+  fileSize     Int      @map("file_size")
+  mimeType     String   @map("mime_type")
+  isPrimary    Boolean  @default(false) @map("is_primary")
+  sortOrder    Int      @default(0) @map("sort_order")
+  altText      String?  @map("alt_text")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+model Subscription {
+  id                   String           @id @default(cuid())
+  companyId            String           @unique @map("company_id")
+  planType             String           @map("plan_type")
+  status               String           @default("active")
+  billingPeriod        String           @default("monthly") @map("billing_period")
+  maxBranches          Int              @default(1) @map("max_branches")
+  maxUsers             Int              @default(3) @map("max_users")
+  maxProducts          Int?             @map("max_products")
+  maxStorageMb         Int?             @map("max_storage_mb")
+  currentPeriodStart   DateTime?        @map("current_period_start") @db.Timestamptz(6)
+  currentPeriodEnd     DateTime?        @map("current_period_end") @db.Timestamptz(6)
+  trialEndsAt          DateTime?        @map("trial_ends_at") @db.Timestamptz(6)
+  stripeCustomerId     String?          @map("stripe_customer_id")
+  stripeSubscriptionId String?          @map("stripe_subscription_id")
+  stripePriceId        String?          @map("stripe_price_id")
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  paymentHistory       PaymentHistory[]
+  company              Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model PlanConfig {
+  id                    String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  planCode              String   @unique @map("plan_code")
+  planName              String   @map("plan_name")
+  monthly_price         Decimal? @db.Decimal(10, 2)
+  annual_price          Decimal? @db.Decimal(10, 2)
+  annualDiscountPercent Int      @default(0) @map("annual_discount_percent")
+  maxBranches           Int      @map("max_branches")
+  maxUsers              Int      @map("max_users")
+  maxProducts           Int?     @map("max_products")
+  maxStorageMb          Int?     @map("max_storage_mb")
+  features              Json     @default("{}")
+  trialDays             Int      @default(0) @map("trial_days")
+  displayOrder          Int      @default(0) @map("display_order")
+  isActive              Boolean  @default(true) @map("is_active")
+  isPopular             Boolean  @default(false) @map("is_popular")
+  description           String?
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  monthlyPriceMxn       Decimal? @default(0) @map("monthly_price_mxn") @db.Decimal(10, 2)
+  annualPriceMxn        Decimal? @default(0) @map("annual_price_mxn") @db.Decimal(10, 2)
+  monthlyPriceUsd       Decimal? @default(0) @map("monthly_price_usd") @db.Decimal(10, 2)
+  annualPriceUsd        Decimal? @default(0) @map("annual_price_usd") @db.Decimal(10, 2)
+
+  @@index([planCode])
+  @@index([isActive])
+  @@index([displayOrder], map: "idx_subscription_plans_order")
+  @@map("subscription_plans")
+}
+
+model CustomerPayment {
+  id            String   @id @default(cuid())
+  customerId    String   @map("customer_id")
+  saleId        String?  @map("sale_id")
+  amount        Decimal  @db.Decimal(10, 2)
+  paymentMethod String   @map("payment_method")
+  reference     String?
+  userId        String   @map("user_id")
+  branchId      String?  @map("branch_id")
+  paymentDate   DateTime @map("payment_date")
+  notes         String?
+  companyId     String   @map("company_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  sale          Sale?    @relation(fields: [saleId], references: [id])
+
+  @@index([customerId])
+  @@index([saleId])
+  @@index([companyId])
+  @@index([paymentDate])
+  @@map("customer_payments")
+}
+
+model CashRegisterClosure {
+  id               String    @id @default(cuid())
+  folio            String    @unique
+  userId           String    @map("user_id")
+  companyId        String    @map("company_id")
+  branchId         String?   @map("branch_id")
+  openedAt         DateTime  @map("opened_at")
+  closedAt         DateTime? @map("closed_at")
+  shift            String?
+  initialFund      Decimal   @default(0) @map("initial_fund") @db.Decimal(10, 2)
+  cashExpected     Decimal   @default(0) @map("cash_expected") @db.Decimal(10, 2)
+  cardExpected     Decimal   @default(0) @map("card_expected") @db.Decimal(10, 2)
+  transferExpected Decimal   @default(0) @map("transfer_expected") @db.Decimal(10, 2)
+  otherExpected    Decimal   @default(0) @map("other_expected") @db.Decimal(10, 2)
+  cashReal         Decimal?  @map("cash_real") @db.Decimal(10, 2)
+  cardReal         Decimal?  @map("card_real") @db.Decimal(10, 2)
+  transferReal     Decimal?  @map("transfer_real") @db.Decimal(10, 2)
+  otherReal        Decimal?  @map("other_real") @db.Decimal(10, 2)
+  cashDifference   Decimal?  @map("cash_difference") @db.Decimal(10, 2)
+  status           String    @default("ABIERTO")
+  notes            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([branchId])
+  @@index([status])
+  @@index([openedAt])
+  @@map("cash_register_closures")
+}
+
+model SuperAdmin {
+  id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId      String    @unique @map("user_id")
+  permissions Json      @default("{\"manage_plans\": true, \"system_settings\": true, \"view_all_companies\": true}")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId], map: "idx_super_admins_user")
+  @@map("super_admins")
+}
+
+model PaymentHistory {
+  id                    String       @id @default(cuid())
+  subscriptionId        String       @map("subscription_id")
+  companyId             String       @map("company_id")
+  amount                Decimal      @db.Decimal(10, 2)
+  currency              String       @default("MXN")
+  billingPeriod         String       @map("billing_period")
+  planCode              String       @map("plan_code")
+  status                String       @default("pending")
+  paymentMethod         String?      @map("payment_method")
+  cardLast4             String?      @map("card_last4")
+  cardBrand             String?      @map("card_brand")
+  stripePaymentIntentId String?      @map("stripe_payment_intent_id")
+  paymentDate           DateTime     @default(now()) @map("payment_date") @db.Timestamptz(6)
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  company               Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscription          Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([companyId])
+  @@index([status])
+  @@map("payment_history")
+}
+
+model EmailLog {
+  id           String      @id @default(cuid())
+  companyId    String      @map("company_id")
+  customerId   String?     @map("customer_id")
+  type         EmailType
+  recipient    String
+  subject      String
+  status       EmailStatus @default(PENDING)
+  messageId    String?     @map("message_id")
+  sentAt       DateTime?   @map("sent_at")
+  openedAt     DateTime?   @map("opened_at")
+  clickedAt    DateTime?   @map("clicked_at")
+  failedAt     DateTime?   @map("failed_at")
+  errorMessage String?     @map("error_message")
+  metadata     Json?
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@index([companyId])
+  @@index([customerId])
+  @@index([type])
+  @@index([status])
+  @@index([sentAt])
+  @@map("email_logs")
+}
+
+model Quotation {
+  id                String           @id @default(cuid())
+  quotationNumber   String           @unique @map("quotation_number")
+  customerId        String           @map("customer_id")
+  companyId         String           @map("company_id")
+  branchId          String?          @map("branch_id")
+  userId            String           @map("user_id")
+  
+  // Items y totales
+  subtotal          Decimal          @db.Decimal(10, 2)
+  discount          Decimal          @default(0) @db.Decimal(10, 2)
+  discountPercent   Decimal          @default(0) @map("discount_percent") @db.Decimal(5, 2)
+  tax               Decimal          @db.Decimal(10, 2)
+  total             Decimal          @db.Decimal(10, 2)
+  
+  // Validez y estado
+  validUntil        DateTime         @map("valid_until")
+  status            QuotationStatus  @default(DRAFT)
+  
+  // Notas y condiciones
+  notes             String?
+  termsConditions   String?          @map("terms_conditions")
+  
+  // Información de envío
+  sentVia           String[]         @default([]) @map("sent_via")  // ["email", "whatsapp"]
+  sentAt            DateTime?        @map("sent_at")
+  emailSentAt       DateTime?        @map("email_sent_at")
+  whatsappSentAt    DateTime?        @map("whatsapp_sent_at")
+  
+  // Seguimiento
+  viewedAt          DateTime?        @map("viewed_at")
+  viewCount         Int              @default(0) @map("view_count")
+  
+  // Conversión a venta
+  convertedToSaleId String?          @unique @map("converted_to_sale_id")
+  convertedAt       DateTime?        @map("converted_at")
+  
+  // Auditoría
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  
+  // Relaciones
+  customer          Customer         @relation(fields: [customerId], references: [id])
+  company           Company          @relation(fields: [companyId], references: [id])
+  branch            Branch?          @relation(fields: [branchId], references: [id])
+  createdBy         User             @relation("QuotationCreatedBy", fields: [userId], references: [id])
+  items             QuotationItem[]
+  
+  @@index([companyId])
+  @@index([customerId])
+  @@index([branchId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([validUntil])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id          String    @id @default(cuid())
+  quotationId String    @map("quotation_id")
+  productId   String    @map("product_id")
+  
+  // Detalles del producto en el momento de cotización
+  productName String    @map("product_name")
+  description String?
+  
+  // Cantidades y precios
+  quantity    Int
+  unitPrice   Decimal   @map("unit_price") @db.Decimal(10, 2)
+  discount    Decimal   @default(0) @db.Decimal(10, 2)
+  subtotal    Decimal   @db.Decimal(10, 2)
+  
+  // Orden de visualización
+  sortOrder   Int       @default(0) @map("sort_order")
+  
+  // Auditoría
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relaciones
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [productId], references: [id])
+  
+  @@index([quotationId])
+  @@index([productId])
+  @@map("quotation_items")
+}
+
+model OnlineOrder {
+  id                String      @id @default(cuid())
+  orderNumber       String      @unique @map("order_number")
+  companyId         String      @map("company_id")
+  
+  // Tipo de orden
+  type              OrderType
+  status            OrderStatus @default(PENDING)
+  
+  // Información del cliente (sin relación - cliente anónimo)
+  customerName      String      @map("customer_name")
+  customerEmail     String      @map("customer_email")
+  customerPhone     String      @map("customer_phone")
+  customerAddress   String?     @map("customer_address")
+  
+  // Items y totales
+  items             Json        // Array de productos con {productId, name, quantity, price, etc}
+  subtotal          Decimal     @db.Decimal(10, 2)
+  tax               Decimal     @db.Decimal(10, 2)
+  total             Decimal     @db.Decimal(10, 2)
+  
+  // Información de pago (si es venta)
+  paymentMethod     String?     @map("payment_method")
+  paymentStatus     String?     @default("pending") @map("payment_status")
+  transactionId     String?     @map("transaction_id")
+  cardLast4         String?     @map("card_last4")
+  cardBrand         String?     @map("card_brand")
+  
+  // Referencias a registros internos creados
+  quotationId       String?     @unique @map("quotation_id")
+  saleId            String?     @unique @map("sale_id")
+  customerId        String?     @map("customer_id") // Si se crea un customer
+  storeCustomerId   String?     @map("store_customer_id") // Cliente de tienda en línea
+  
+  // Notas
+  notes             String?
+  adminNotes        String?     @map("admin_notes")
+  
+  // Envío de notificaciones
+  emailSentAt       DateTime?   @map("email_sent_at")
+  
+  // Auditoría
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  processedAt       DateTime?   @map("processed_at")
+  
+  // Relaciones
+  company           Company     @relation(fields: [companyId], references: [id])
+  storeCustomer     StoreCustomer? @relation("StoreCustomerOrders", fields: [storeCustomerId], references: [id])
+  
+  @@index([companyId])
+  @@index([type])
+  @@index([status])
+  @@index([customerEmail])
+  @@index([createdAt])
+  @@map("online_orders")
+}
+
+enum TransferStatus {
+  PENDING
+  APPROVED
+  IN_TRANSIT
+  RECEIVED
+  CANCELLED
+}
+
+enum Role {
+  ADMIN
+  VENDEDOR
+  ALMACEN
+  SOLO_LECTURA
+  SUPERADMIN
+}
+
+enum BusinessType {
+  FERRETERIA
+  ABARROTES
+  PAPELERIA
+  FARMACIA
+  RESTAURANTE
+  ROPA
+  ELECTRONICA
+  AUTOMOTRIZ
+  BELLEZA
+  DEPORTES
+  JUGUETERIA
+  LIBRERIA
+  GENERAL
+}
+
+enum DeliveryType {
+  PICKUP
+  LOCAL
+  FORANEO
+}
+
+enum Plan {
+  FREE
+  PRO
+  PRO_PLUS
+  ENTERPRISE
+}
+
+enum CompanyStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  TRIAL
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  active
+  inactive
+  cancelled
+  past_due
+
+  @@map("subscription_status")
+}
+
+enum BillingPeriod {
+  monthly
+  annual
+
+  @@map("billing_period")
+}
+
+enum EmailType {
+  ACCOUNT_STATEMENT
+  PAYMENT_REMINDER
+  PAYMENT_CONFIRMATION
+  OVERDUE_NOTICE
+  WELCOME
+  PASSWORD_RESET
+  INVOICE
+  RECEIPT
+  OTHER
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  FAILED
+}
+
+enum QuotationStatus {
+  DRAFT        // Borrador - No enviada
+  SENT         // Enviada al cliente
+  VIEWED       // Cliente la vio
+  ACCEPTED     // Cliente aceptó
+  REJECTED     // Cliente rechazó
+  EXPIRED      // Venció la vigencia
+  CONVERTED    // Convertida a venta
+  CANCELLED    // Cancelada por el vendedor
+}
+
+enum OrderType {
+  QUOTE        // Solicitud de cotización
+  SALE         // Compra en línea
+}
+
+enum OrderStatus {
+  PENDING      // En espera de procesamiento
+  PROCESSING   // Siendo procesada por el admin
+  COMPLETED    // Completada exitosamente
+  FAILED       // Falló (pago rechazado, etc)
+  CANCELLED    // Cancelada
+}
+
+// ==========================================
+// CLIENTES DE TIENDA EN LÍNEA
+// ==========================================
+
+model StoreCustomer {
+  id                String                  @id @default(cuid())
+  email             String
+  password          String?                 // null = compró como invitado
+  name              String
+  phone             String?
+  isVerified        Boolean                 @default(false) @map("is_verified")
+  verificationToken String?                 @map("verification_token")
+  resetToken        String?                 @map("reset_token")
+  resetTokenExpiry  DateTime?               @map("reset_token_expiry")
+  lastLoginAt       DateTime?               @map("last_login_at")
+  companyId         String                  @map("company_id")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  
+  // Relaciones
+  company           Company                 @relation(fields: [companyId], references: [id])
+  addresses         StoreCustomerAddress[]
+  orders            OnlineOrder[]           @relation("StoreCustomerOrders")
+  
+  @@unique([email, companyId]) // Un email único por tienda
+  @@index([companyId])
+  @@index([email])
+  @@map("store_customers")
+}
+
+model StoreCustomerAddress {
+  id              String        @id @default(cuid())
+  storeCustomerId String        @map("store_customer_id")
+  label           String?       // "Casa", "Oficina", etc.
+  name            String        // Nombre de quien recibe
+  phone           String        // Teléfono de contacto
+  street          String        // Calle y número
+  colony          String?       // Colonia
+  city            String
+  state           String
+  postalCode      String?       @map("postal_code")
+  country         String        @default("México")
+  references      String?       // Referencias adicionales
+  isDefault       Boolean       @default(false) @map("is_default")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  
+  // Relaciones
+  storeCustomer   StoreCustomer @relation(fields: [storeCustomerId], references: [id], onDelete: Cascade)
+  
+  @@index([storeCustomerId])
+  @@map("store_customer_addresses")
+}

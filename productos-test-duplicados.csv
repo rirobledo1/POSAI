@@ -1,0 +1,6 @@
+name,description,cost,stock,minStock,categoryId
+"Tornillo Phillips 1/4""","Tornillo para madera de 1/4 pulgada",15.50,50,10,
+"Martillo de Goma 16oz","Martillo con mango de madera",45.00,25,5,Herramientas
+"Interruptor Simple","Interruptor eléctrico de pared blanco",12.75,30,10,
+"Cable Eléctrico 12 AWG","Cable eléctrico de cobre para instalaciones",35.00,100,20,
+"Cemento Gris 50kg","Cemento portland gris bolsa de 50 kilogramos",125.00,10,5,construccion

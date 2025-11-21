@@ -1,0 +1,13 @@
+id,name,description,active
+CAT001,Herramientas Manuales,"Martillos, destornilladores, llaves, alicates y herramientas básicas de mano",true
+CAT002,Herramientas Eléctricas,"Taladros, sierras eléctricas, amoladoras, lijadoras y herramientas con motor",true
+CAT003,Ferretería General,"Tornillos, tuercas, clavos, pernos, arandelas y elementos de fijación",true
+CAT004,Fontanería,"Tuberías, conexiones, llaves de paso, grifos y accesorios para instalaciones sanitarias",true
+CAT005,Electricidad,"Cables, interruptores, enchufes, bombillas y material eléctrico",true
+CAT006,Pintura y Acabados,"Pinturas, brochas, rodillos, masillas y productos para acabado de superficies",true
+CAT007,Construcción,"Cemento, arena, grava, ladrillos y materiales para construcción",true
+CAT008,Jardinería,"Herramientas de jardín, mangueras, aspersores y productos para el cuidado del jardín",true
+CAT009,Seguridad Industrial,"Cascos, guantes, gafas de protección, arneses y equipo de seguridad laboral",true
+CAT010,Cerrajería,"Cerraduras, llaves, candados, bisagras y herrajes para puertas y ventanas",true
+CAT011,Soldadura,"Electrodos, máscaras, soplete, varillas y equipos de soldadura",true
+CAT012,Medición,"Metros, niveles, escuadras, calibradores y instrumentos de medición",true

@@ -1,0 +1,143 @@
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│             ✅ CHECKLIST DE MIGRACIÓN MULTI-TENANT              │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+
+📋 PREPARACIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] Docker Desktop está abierto y corriendo
+  [ ] Contenedor ferreai_postgres está activo
+  [ ] Node.js está instalado (verificar: node --version)
+  [ ] Estás en la carpeta del proyecto
+  [ ] Has leído EJECUTAR-AHORA.md
+
+
+🚀 EJECUCIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] Ejecutado: EJECUTAR-MIGRACION.bat
+  [ ] Opción 0: Sistema verificado ✅
+  [ ] Opción A: Ejecución automática iniciada
+
+      PASO 1: BACKUP
+      [ ] Backup creado exitosamente
+      [ ] Archivo: backup_ferreai_YYYYMMDD_HHMMSS.sql existe
+      
+      PASO 2: PRIMERA MIGRACIÓN
+      [ ] Migración aplicada sin errores
+      [ ] Columnas company_id creadas
+      [ ] Tabla companies creada
+      [ ] Enums Plan y CompanyStatus creados
+      
+      PASO 3: MIGRAR DATOS
+      [ ] Compañía "Mi Empresa" creada
+      [ ] Todos los usuarios asignados
+      [ ] Todos los productos asignados
+      [ ] Todos los clientes asignados
+      [ ] Todas las ventas asignadas
+      [ ] Todas las categorías asignadas
+      [ ] Todos los movimientos asignados
+      [ ] Todas las direcciones asignadas
+      
+      PASO 4: VERIFICACIÓN
+      [ ] No hay registros sin company_id
+      [ ] Verificación pasada ✅
+      
+      PASO 5: CAMPOS OBLIGATORIOS
+      [ ] Schema modificado (String? → String)
+      [ ] Segunda migración aplicada
+      [ ] Campos ahora son obligatorios
+
+
+✅ POST-MIGRACIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] Aplicación inicia sin errores (npm run dev)
+  [ ] Puedo ver mis productos
+  [ ] Puedo ver mis clientes  
+  [ ] Puedo ver mis ventas
+  [ ] Dashboard carga correctamente
+  [ ] No hay errores en consola del navegador
+  [ ] Backup guardado en lugar seguro
+
+
+📊 VERIFICACIÓN MANUAL (Opcional)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Conecta a tu base de datos y ejecuta:
+
+  [ ] SELECT * FROM companies;
+      → Debe mostrar 1 compañía: "Mi Empresa"
+  
+  [ ] SELECT COUNT(*) FROM users WHERE company_id IS NULL;
+      → Debe retornar: 0
+  
+  [ ] SELECT COUNT(*) FROM products WHERE company_id IS NULL;
+      → Debe retornar: 0
+  
+  [ ] SELECT COUNT(*) FROM customers WHERE company_id IS NULL;
+      → Debe retornar: 0
+
+
+🎉 FASE 1 COMPLETADA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [ ] Todos los checks anteriores están ✅
+  [ ] Sistema funcionando correctamente
+  [ ] Backup seguro guardado
+  [ ] Listo para continuar con Fase 2
+
+
+📝 NOTAS Y OBSERVACIONES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fecha de migración: _______________
+
+Hora de inicio: _______________
+
+Hora de fin: _______________
+
+Tiempo total: _______________
+
+Tamaño del backup: _______________
+
+Registros migrados:
+  - Usuarios: _______________
+  - Productos: _______________
+  - Clientes: _______________
+  - Ventas: _______________
+  - Categorías: _______________
+  - Movimientos: _______________
+  - Direcciones: _______________
+
+¿Algún error? (Sí/No): _______________
+
+Si hubo errores, describe:
+_______________________________________
+_______________________________________
+_______________________________________
+
+
+✅ FIRMA DE COMPLETADO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Nombre: ___________________________
+
+Fecha: ____________________________
+
+Firma: ____________________________
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  🎯 PRÓXIMO PASO: FASE 2 - AUTENTICACIÓN                        │
+│                                                                  │
+│  Una vez completado este checklist, estás listo para:           │
+│  - Modificar NextAuth                                            │
+│  - Crear página de registro                                      │
+│  - Agregar companyId a la sesión                                │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘

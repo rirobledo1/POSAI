@@ -1,0 +1,11 @@
+name,description,cost,price,stock,minStock,categoryId,barcode
+Martillo carpintero 16oz,Martillo de carpintero cabeza 16 onzas,12.00,22.50,15,3,Herramientas,
+Tornillo hexagonal 6x20mm,Tornillo de acero hexagonal 6x20mm,0.50,1.20,500,50,Ferretería,
+Cable eléctrico 12 AWG,Cable eléctrico calibre 12 AWG rollo 100 metros,89.00,125.00,12,2,Electricidad,
+Pintura blanca vinílica 1L,Pintura vinílica color blanco 1 litro,18.50,28.90,30,5,Pintura,
+Tubo PVC 4 pulgadas x 6m,Tubo PVC sanitario 4 pulgadas por 6 metros,45.00,68.50,20,3,Plomería,
+Cemento Portland 50kg,Cemento Portland tipo I 50 kilogramos,8.90,12.50,100,10,Construcción,
+Destornillador Phillips #2,Destornillador con punta Phillips número 2,8.50,15.90,25,5,Herramientas,
+Interruptor sencillo blanco,Interruptor sencillo color blanco 15 amperios,3.50,6.80,80,10,Eléctrico,
+Válvula de bola 1/2 pulgada,Válvula de bola de bronce 1/2 pulgada,18.50,28.90,35,5,Plomeria,
+Llana dentada 6mm,Llana dentada 6 milimetros,35.00,52.90,18,2,Construccion
