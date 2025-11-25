@@ -50,12 +50,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // 🎯 Callbacks optimizados
   const handleSignOut = useCallback(async () => {
     try {
-      await signOut({ callbackUrl: '/login' });
+      console.log('🚪 Cerrando sesión...');
+      // Usar redirect: false y manejar la redirección manualmente
+      await signOut({ 
+        redirect: false,
+        callbackUrl: '/login' 
+      });
+      // Redirección manual para asegurar la URL correcta
+      window.location.href = '/login';
     } catch (error) {
-      console.error('Error signing out:', error);
-      router.push('/login');
+      console.error('❌ Error al cerrar sesión:', error);
+      // Fallback: redirección forzada
+      window.location.href = '/login';
     }
-  }, [router]);
+  }, []);
 
   const handleNavigation = useCallback((href: string) => {
     try {
@@ -86,14 +94,22 @@ export default function MainLayout({ children }: MainLayoutProps) {
     [userRole]
   );
 
+  // 🎯 Manejo de redirección a login con useEffect (evita error de setState durante render)
+  useEffect(() => {
+    if (status !== 'loading' && !session) {
+      console.log('⚠️ No hay sesión, redirigiendo a login...');
+      window.location.href = '/login';
+    }
+  }, [session, status]);
+
   // 🎯 Early returns con loading y autenticación
   if (status === 'loading') {
     return <LoadingSpinner />
   }
 
+  // Si no hay sesión, mostrar loading mientras redirige (el useEffect maneja la redirección)
   if (!session) {
-    router.push('/login');
-    return null;
+    return <LoadingSpinner />
   }
 
   return (

@@ -1,4 +1,5 @@
 // src/app/api/quotations/[id]/send-email/route.ts
+// ✅ CORREGIDO: Solo PRO_PLUS y ENTERPRISE pueden enviar emails
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -34,7 +35,7 @@ export async function POST(
             email: true,
             rfc: true,
             taxRate: true,
-            plan: true // Agregar plan aquí
+            plan: true
           }
         },
         branch: true,
@@ -62,16 +63,19 @@ export async function POST(
       )
     }
 
-    // Verificar permisos del plan
+    // ✅ CORRECCIÓN: Verificar permisos del plan
     const companyPlan = quotation.company.plan || 'FREE'
     
-    // Plan FREE no puede enviar emails
-    if (companyPlan === 'FREE') {
+    // Solo PRO_PLUS y ENTERPRISE pueden enviar emails
+    const allowedPlans = ['PRO_PLUS', 'ENTERPRISE']
+    if (!allowedPlans.includes(companyPlan)) {
       return NextResponse.json(
         { 
           error: 'Tu plan no incluye envío de cotizaciones por email',
           upgrade: true,
-          requiredPlan: 'PRO'
+          requiredPlan: 'PRO_PLUS',
+          currentPlan: companyPlan,
+          message: 'Actualiza a Pro Plus o Enterprise para enviar cotizaciones por email'
         },
         { status: 403 }
       )
@@ -210,7 +214,10 @@ export async function POST(
   } catch (error) {
     console.error('Error sending quotation email:', error)
     return NextResponse.json(
-      { error: 'Error al enviar cotización por email' },
+      { 
+        error: 'Error al enviar cotización por email',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      },
       { status: 500 }
     )
   }

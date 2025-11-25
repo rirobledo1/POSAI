@@ -7,7 +7,7 @@ import { getCompanyIdFromSession } from '@/lib/session-helpers'
 // GET - Obtener cliente específico
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -18,11 +18,11 @@ export async function GET(
     // 🆕 MULTI-TENANT: Obtener companyId
     const companyId = await getCompanyIdFromSession()
 
-    const { id } = params
+    const { id } = await params
 
     // 🆕 CRITICAL: Verificar ownership
     const customer = await prisma.customer.findFirst({
-      where: { 
+      where: {
         id,
         companyId  // ← Verificar que pertenece a la compañía
       },
@@ -70,7 +70,7 @@ export async function GET(
 // PUT - Actualizar cliente
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -81,7 +81,7 @@ export async function PUT(
     // 🆕 MULTI-TENANT: Obtener companyId
     const companyId = await getCompanyIdFromSession()
 
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const {
       name,
@@ -103,7 +103,7 @@ export async function PUT(
 
     // 🆕 CRITICAL: Verificar que el cliente existe y pertenece a la compañía
     const existingCustomer = await prisma.customer.findFirst({
-      where: { 
+      where: {
         id,
         companyId  // ← Verificar ownership
       }
@@ -119,7 +119,7 @@ export async function PUT(
     // 🆕 CRITICAL: Verificar email duplicado DENTRO de la compañía
     if (email && email !== existingCustomer.email) {
       const duplicateEmail = await prisma.customer.findFirst({
-        where: { 
+        where: {
           email,
           companyId,  // ← Solo en la misma compañía
           id: { not: id }
@@ -135,7 +135,7 @@ export async function PUT(
 
     // 🆕 CRITICAL: Actualizar solo si pertenece a la compañía
     const updatedCustomer = await prisma.customer.update({
-      where: { 
+      where: {
         id,
         companyId  // ← Verificar ownership
       },
@@ -170,7 +170,7 @@ export async function PUT(
 // DELETE - Eliminar cliente (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -181,11 +181,11 @@ export async function DELETE(
     // 🆕 MULTI-TENANT: Obtener companyId
     const companyId = await getCompanyIdFromSession()
 
-    const { id } = params
+    const { id } = await params
 
     // 🆕 CRITICAL: Verificar que el cliente existe y pertenece a la compañía
     const existingCustomer = await prisma.customer.findFirst({
-      where: { 
+      where: {
         id,
         companyId  // ← Verificar ownership
       }
@@ -200,7 +200,7 @@ export async function DELETE(
 
     // 🆕 CRITICAL: Verificar ventas solo de la misma compañía
     const salesCount = await prisma.sale.count({
-      where: { 
+      where: {
         customerId: id,
         companyId  // ← Contar solo ventas de la compañía
       }
@@ -209,19 +209,19 @@ export async function DELETE(
     if (salesCount > 0) {
       // Si tiene ventas, hacer soft delete
       const updatedCustomer = await prisma.customer.update({
-        where: { 
+        where: {
           id,
           companyId  // ← Verificar ownership
         },
         data: { isActive: false }
       })
-      
+
       const customerWithNumbers = {
         ...updatedCustomer,
         creditLimit: updatedCustomer.creditLimit.toNumber(),
         currentDebt: updatedCustomer.currentDebt.toNumber()
       }
-      
+
       return NextResponse.json({
         message: 'Cliente desactivado exitosamente (tiene ventas asociadas)',
         customer: customerWithNumbers
@@ -229,7 +229,7 @@ export async function DELETE(
     } else {
       // Si no tiene ventas, eliminar físicamente
       await prisma.customer.delete({
-        where: { 
+        where: {
           id,
           companyId  // ← Verificar ownership
         }
