@@ -277,7 +277,7 @@ export function PlanCard({
         {code === 'ENTERPRISE' && (
           <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
             <p className="text-xs text-purple-800 font-semibold text-center">
-              👑 30 días de prueba gratis + Onboarding personalizado
+              👑 Onboarding personalizado
             </p>
           </div>
         )}

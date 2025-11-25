@@ -24,11 +24,12 @@ const updateBranchSchema = z.object({
 // GET /api/branches/[id] - Obtener sucursal específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -38,7 +39,7 @@ export async function GET(
     // Buscar sucursal verificando ownership
     const branch = await prisma.branch.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId // 🔥 VERIFICAR OWNERSHIP
       },
       include: {
@@ -103,11 +104,12 @@ export async function GET(
 // PUT /api/branches/[id] - Actualizar sucursal
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -128,7 +130,7 @@ export async function PUT(
     // Verificar que la sucursal existe y pertenece a la compañía
     const existingBranch = await prisma.branch.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId // 🔥 VERIFICAR OWNERSHIP
       }
     })
@@ -146,7 +148,7 @@ export async function PUT(
         where: {
           companyId,
           code: validatedData.code,
-          id: { not: params.id }
+          id: { not: id }
         }
       })
 
@@ -160,7 +162,7 @@ export async function PUT(
 
     // Actualizar sucursal
     const updatedBranch = await prisma.branch.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         ...validatedData,
         updatedAt: new Date()
@@ -182,7 +184,7 @@ export async function PUT(
         data: {
           action: 'UPDATE_BRANCH',
           entityType: 'BRANCH',
-          entityId: params.id,
+          entityId: id,
           userId: session.user.id!,
           details: {
             companyId,
@@ -243,11 +245,12 @@ export async function PUT(
 // DELETE /api/branches/[id] - Desactivar sucursal
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -265,7 +268,7 @@ export async function DELETE(
     // Verificar que la sucursal existe y pertenece a la compañía
     const branch = await prisma.branch.findFirst({
       where: {
-        id: params.id,
+        id: id,
         companyId // 🔥 VERIFICAR OWNERSHIP
       },
       include: {
@@ -297,7 +300,7 @@ export async function DELETE(
     // Verificar si tiene datos asociados
     if (branch._count.sales > 0) {
       return NextResponse.json(
-        { 
+        {
           error: 'No se puede eliminar una sucursal con ventas registradas',
           details: {
             sales: branch._count.sales,
@@ -310,8 +313,8 @@ export async function DELETE(
 
     // Desactivar en lugar de eliminar (soft delete)
     const deactivatedBranch = await prisma.branch.update({
-      where: { id: params.id },
-      data: { 
+      where: { id: id },
+      data: {
         isActive: false,
         updatedAt: new Date()
       }
@@ -323,7 +326,7 @@ export async function DELETE(
         data: {
           action: 'DEACTIVATE_BRANCH',
           entityType: 'BRANCH',
-          entityId: params.id,
+          entityId: id,
           userId: session.user.id!,
           details: {
             companyId,

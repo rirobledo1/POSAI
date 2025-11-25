@@ -1,6 +1,8 @@
-// src/lib/auth.ts - ACTUALIZADO PARA MULTI-TENANT
+// src/lib/auth.ts - ACTUALIZADO PARA MULTI-TENANT + RATE LIMITING
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import GoogleProvider from 'next-auth/providers/google'
+import { checkLoginRateLimit, recordLoginAttempt, clearLoginAttempts } from '@/lib/rate-limit'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -24,6 +26,18 @@ export const authOptions: NextAuthOptions = {
           const bcrypt = await import('bcryptjs')
           
           console.log(`🔍 Intentando autenticación para: ${login}`)
+          
+          // 🛡️ RATE LIMITING: Verificar intentos fallidos
+          const rateLimitResult = await checkLoginRateLimit(login, 'email')
+          
+          if (!rateLimitResult.allowed) {
+            console.log(`⚠️ Rate limit excedido para: ${login}`)
+            // Registrar intento bloqueado
+            await recordLoginAttempt(login, 'email', false, undefined, undefined)
+            return null // NextAuth mostrará error genérico
+          }
+          
+          console.log(`✅ Rate limit OK - Intentos restantes: ${rateLimitResult.remainingAttempts}`)
           
           // Función para verificar si es email o teléfono
           const isEmail = login.includes('@')
@@ -66,6 +80,8 @@ export const authOptions: NextAuthOptions = {
           if (!user) {
             console.log(`❌ Usuario no encontrado: ${login}`)
             console.log(`🔍 Buscando con criterio: ${isEmail ? 'email' : 'phone'} = ${login}`)
+            // 🛡️ Registrar intento fallido
+            await recordLoginAttempt(login, 'email', false, undefined, undefined)
             return null
           }
 
@@ -100,6 +116,19 @@ export const authOptions: NextAuthOptions = {
           return null
         }
       }
+    }),
+    
+    // ✅ GOOGLE OAUTH PROVIDER
+    GoogleProvider({  
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     })
   ],
   session: {
@@ -109,8 +138,39 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login',
   },
   callbacks: {
+    // ✅ Manejar sign in con OAuth providers
+    async signIn({ user, account, profile }) {
+      // Si es Google OAuth
+      if (account?.provider === 'google') {
+        const { prisma } = await import('@/lib/prisma')
+        
+        // Verificar si el usuario ya existe
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+          include: { company: true }
+        })
+        
+        if (!existingUser) {
+          console.log(`⚠️ Usuario no existe: ${user.email}`)
+          // ⚠️ Por seguridad, NO permitir auto-registro con OAuth
+          // El usuario debe registrarse primero con email/password
+          return false
+        }
+        
+        if (!existingUser.isActive) {
+          console.log(`⚠️ Usuario inactivo: ${user.email}`)
+          return false
+        }
+        
+        console.log(`✅ Login con Google exitoso: ${user.email}`)
+        return true
+      }
+      
+      return true
+    },
+    
     // 🆕 MULTI-TENANT: Incluir datos de compañía en JWT
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id
         token.role = user.role
@@ -118,6 +178,24 @@ export const authOptions: NextAuthOptions = {
         token.companyName = user.companyName
         token.companyPlan = user.companyPlan
       }
+      
+      // Si es login con OAuth y aún no tenemos los datos de la compañía
+      if (account && !token.companyId) {
+        const { prisma } = await import('@/lib/prisma')
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email! },
+          include: { company: true }
+        })
+        
+        if (dbUser) {
+          token.id = dbUser.id
+          token.role = dbUser.role
+          token.companyId = dbUser.companyId
+          token.companyName = dbUser.company.name
+          token.companyPlan = dbUser.company.plan
+        }
+      }
+      
       return token
     },
     // 🆕 MULTI-TENANT: Incluir datos de compañía en session

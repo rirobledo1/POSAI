@@ -1,4 +1,5 @@
 // src/app/api/quotations/[id]/send-whatsapp/route.ts
+// ✅ CORREGIDO: Solo PRO_PLUS y ENTERPRISE pueden enviar WhatsApp
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -67,19 +68,19 @@ export async function POST(
       )
     }
 
-    // Verificar permisos del plan
+    // ✅ CORRECCIÓN: Verificar permisos del plan
     const companyPlan = quotation.company.plan || 'FREE'
     
-    // Verificar que el plan permita WhatsApp
-    // FREE y BASIC no tienen WhatsApp, PRO y ENTERPRISE sí
-    const allowedPlans = ['PRO', 'ENTERPRISE']
+    // Solo PRO_PLUS y ENTERPRISE tienen envío por WhatsApp
+    const allowedPlans = ['PRO_PLUS', 'ENTERPRISE']
     if (!allowedPlans.includes(companyPlan)) {
       return NextResponse.json(
         { 
           error: 'Tu plan no incluye envío de cotizaciones por WhatsApp',
           upgrade: true,
-          requiredPlan: 'PRO',
-          currentPlan: companyPlan
+          requiredPlan: 'PRO_PLUS',
+          currentPlan: companyPlan,
+          message: 'Actualiza a Pro Plus o Enterprise para enviar cotizaciones por WhatsApp'
         },
         { status: 403 }
       )
@@ -99,13 +100,15 @@ export async function POST(
     const formattedPhone = formatPhoneNumber(phoneNumber, '52') // México por defecto
 
     // Determinar modo de envío según el plan
-    const sendMode = data.mode || (companyPlan === 'PRO' ? 'manual' : 'auto')
+    // PRO_PLUS: Modo manual (WhatsApp Web)
+    // ENTERPRISE: Modo automático (WhatsApp Business API)
+    const sendMode = data.mode || (companyPlan === 'PRO_PLUS' ? 'manual' : 'auto')
 
     // Preparar mensaje
     const message = data.message || formatQuotationMessage(quotation)
 
-    // PLAN PRO: Modo manual (solo devuelve URL de WhatsApp Web)
-    if (companyPlan === 'PRO' || sendMode === 'manual') {
+    // PLAN PRO_PLUS: Modo manual (solo devuelve URL de WhatsApp Web)
+    if (companyPlan === 'PRO_PLUS' || sendMode === 'manual') {
       const whatsappUrl = generateWhatsAppWebUrl(formattedPhone, message)
 
       // Actualizar registro (aunque sea manual)

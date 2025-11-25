@@ -1,5 +1,6 @@
 'use client'
 
+// ✅ CORREGIDO: Validación de plan para cotizaciones online y WhatsApp
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useQuotations } from '@/hooks/useQuotations'
+import { usePlanFeatures } from '@/hooks/usePlanFeatures'
 import {
   ArrowLeft,
   Eye,
@@ -28,7 +30,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Sparkles
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -107,6 +111,9 @@ export default function QuotationDetailPage() {
     loading
   } = useQuotations()
 
+  // ✅ Hook para verificar features del plan
+  const { canQuoteOnline, canQuoteWhatsApp, plan, loading: planLoading } = usePlanFeatures()
+
   const [quotation, setQuotation] = useState<QuotationDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -141,17 +148,33 @@ export default function QuotationDetailPage() {
   const handleSendEmail = async () => {
     if (!quotation) return
 
+    // ✅ Verificar permisos antes de intentar
+    if (!canQuoteOnline) {
+      alert('Tu plan no incluye envío de cotizaciones por email. Actualiza a Pro Plus o Enterprise.')
+      return
+    }
+
     try {
       await sendByEmail(quotation.id, quotation.customer.email)
       alert('Cotización enviada por email exitosamente')
       loadQuotationDetail()
     } catch (error: any) {
-      alert(error.message || 'Error al enviar email')
+      if (error.message?.includes('plan') || error.message?.includes('upgrade')) {
+        alert('Tu plan no incluye esta función. Actualiza a Pro Plus o Enterprise.')
+      } else {
+        alert(error.message || 'Error al enviar email')
+      }
     }
   }
 
   const handleSendWhatsApp = async () => {
     if (!quotation) return
+
+    // ✅ Verificar permisos antes de intentar
+    if (!canQuoteWhatsApp) {
+      alert('Tu plan no incluye envío de cotizaciones por WhatsApp. Actualiza a Pro Plus o Enterprise.')
+      return
+    }
 
     try {
       const result = await sendByWhatsApp(quotation.id, quotation.customer.phone)
@@ -164,8 +187,16 @@ export default function QuotationDetailPage() {
 
       loadQuotationDetail()
     } catch (error: any) {
-      alert(error.message || 'Error al enviar por WhatsApp')
+      if (error.message?.includes('plan') || error.message?.includes('upgrade')) {
+        alert('Tu plan no incluye esta función. Actualiza a Pro Plus o Enterprise.')
+      } else {
+        alert(error.message || 'Error al enviar por WhatsApp')
+      }
     }
+  }
+
+  const handleUpgrade = () => {
+    router.push('/settings/subscription')
   }
 
   const handleConvertToSale = async () => {
@@ -266,7 +297,7 @@ export default function QuotationDetailPage() {
       !isExpired(quotation.validUntil)
   }
 
-  if (loadingDetail) {
+  if (loadingDetail || planLoading) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-96">
@@ -342,25 +373,53 @@ export default function QuotationDetailPage() {
               PDF
             </Button>
 
-            <Button
-              variant="outline"
-              onClick={handleSendEmail}
-              disabled={loading || !quotation.customer.email}
-              className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:border-purple-300"
-            >
-              <Mail className="h-4 w-4" />
-              Email
-            </Button>
+            {/* ✅ Email Button - Solo si tiene el feature */}
+            {canQuoteOnline ? (
+              <Button
+                variant="outline"
+                onClick={handleSendEmail}
+                disabled={loading || !quotation.customer.email}
+                className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:border-purple-300"
+              >
+                <Mail className="h-4 w-4" />
+                Email
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={handleUpgrade}
+                className="flex items-center gap-2 text-gray-400 border-gray-300 hover:border-blue-400 hover:text-blue-600"
+                title="Requiere Plan Pro Plus o Enterprise"
+              >
+                <Lock className="h-4 w-4" />
+                <Mail className="h-4 w-4" />
+                Email
+              </Button>
+            )}
 
-            <Button
-              variant="outline"
-              onClick={handleSendWhatsApp}
-              disabled={loading || !quotation.customer.phone}
-              className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:border-green-300"
-            >
-              <MessageCircle className="h-4 w-4" />
-              WhatsApp
-            </Button>
+            {/* ✅ WhatsApp Button - Solo si tiene el feature */}
+            {canQuoteWhatsApp ? (
+              <Button
+                variant="outline"
+                onClick={handleSendWhatsApp}
+                disabled={loading || !quotation.customer.phone}
+                className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:border-green-300"
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={handleUpgrade}
+                className="flex items-center gap-2 text-gray-400 border-gray-300 hover:border-blue-400 hover:text-blue-600"
+                title="Requiere Plan Pro Plus o Enterprise"
+              >
+                <Lock className="h-4 w-4" />
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </Button>
+            )}
 
             {canConvertToSale(quotation) && (
               <Button
@@ -386,6 +445,31 @@ export default function QuotationDetailPage() {
             )}
           </div>
         </div>
+
+        {/* ✅ Upgrade Banner - Si no tiene los features */}
+        {(!canQuoteOnline || !canQuoteWhatsApp) && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-medium text-blue-900 mb-1">
+                  Actualiza tu plan para desbloquear más funciones
+                </h3>
+                <p className="text-sm text-blue-700 mb-3">
+                  Con Pro Plus o Enterprise puedes enviar cotizaciones por email y WhatsApp automáticamente.
+                </p>
+                <Button
+                  onClick={handleUpgrade}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Ver Planes
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Alert if expired */}
         {isExpired(quotation.validUntil) && quotation.status !== 'CONVERTED' && (

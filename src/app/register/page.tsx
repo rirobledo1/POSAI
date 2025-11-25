@@ -323,7 +323,7 @@ export default function RegisterPage() {
                 
                 <p className="text-center text-sm text-gray-500 mt-4">
                   Al crear una cuenta, aceptas nuestros{' '}
-                  <Link href="/terms" className="text-blue-600 hover:text-blue-700">
+                  <Link href="/terminos-y-condiciones" className="text-blue-600 hover:text-blue-700">
                     Términos y Condiciones
                   </Link>
                 </p>

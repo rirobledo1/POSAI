@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useQuotations, Quotation } from '@/hooks/useQuotations'
+import { usePlanFeatures } from '@/hooks/usePlanFeatures'
 import { 
   Search, 
   Plus,
@@ -22,7 +23,8 @@ import {
   User,
   FileText,
   Trash2,
-  Clock
+  Clock,
+  Lock
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -49,6 +51,9 @@ export default function CotizacionesPage() {
     deleteQuotation,
     loading 
   } = useQuotations()
+  
+  // Verificar características del plan
+  const { canQuoteOnline, canQuoteWhatsApp, plan } = usePlanFeatures()
   
   const [state, setState] = useState<QuotationsPageState>({
     quotations: [],
@@ -200,6 +205,29 @@ export default function CotizacionesPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
+        {/* Banner informativo para Plan PRO */}
+        {plan === 'PRO' && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Lock className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-900">Plan Profesional - Cotizaciones Presenciales</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  Con tu plan actual puedes crear cotizaciones y descargarlas en PDF. 
+                  <strong className="font-semibold"> Mejora a Plan Pro Plus o Enterprise</strong> para desbloquear el envío automático por Email y WhatsApp.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => router.push('/settings/subscription')}
+                  className="mt-3 bg-blue-600 hover:bg-blue-700"
+                >
+                  Ver Planes
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -359,27 +387,55 @@ export default function CotizacionesPage() {
                               <Download className="h-4 w-4" />
                             </Button>
 
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleSendEmail(quotation)}
-                              disabled={!quotation.customer.email}
-                              title="Enviar por email"
-                              className="text-purple-600 hover:text-purple-700 hover:border-purple-300"
-                            >
-                              <Mail className="h-4 w-4" />
-                            </Button>
+                            {/* Botón Email - Solo para PRO_PLUS y ENTERPRISE */}
+                            {canQuoteOnline ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSendEmail(quotation)}
+                                disabled={!quotation.customer.email}
+                                title="Enviar por email"
+                                className="text-purple-600 hover:text-purple-700 hover:border-purple-300"
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                title={`Disponible en Plan Pro Plus y Enterprise (Plan actual: ${plan})`}
+                                className="text-gray-400 cursor-not-allowed"
+                              >
+                                <Lock className="h-3 w-3 mr-1" />
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                            )}
 
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleSendWhatsApp(quotation)}
-                              disabled={!quotation.customer.phone}
-                              title="Enviar por WhatsApp"
-                              className="text-green-600 hover:text-green-700 hover:border-green-300"
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                            </Button>
+                            {/* Botón WhatsApp - Solo para PRO_PLUS y ENTERPRISE */}
+                            {canQuoteWhatsApp ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSendWhatsApp(quotation)}
+                                disabled={!quotation.customer.phone}
+                                title="Enviar por WhatsApp"
+                                className="text-green-600 hover:text-green-700 hover:border-green-300"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                title={`Disponible en Plan Pro Plus y Enterprise (Plan actual: ${plan})`}
+                                className="text-gray-400 cursor-not-allowed"
+                              >
+                                <Lock className="h-3 w-3 mr-1" />
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            )}
                             
                             {canConvertToSale(quotation) && (
                               <Button

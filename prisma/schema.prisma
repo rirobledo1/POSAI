@@ -980,3 +980,21 @@ model StoreCustomerAddress {
   @@index([storeCustomerId])
   @@map("store_customer_addresses")
 }
+
+model LoginAttempt {
+  id          String   @id @default(cuid())
+  identifier  String   // IP o email
+  type        String   // 'ip' o 'email'
+  success     Boolean  @default(false)
+  userId      String?  @map("user_id")
+  userAgent   String?  @map("user_agent")
+  attemptedAt DateTime @default(now()) @map("attempted_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@index([identifier])
+  @@index([type])
+  @@index([attemptedAt])
+  @@index([success])
+  @@index([identifier, type, success, attemptedAt])
+  @@map("login_attempts")
+}
